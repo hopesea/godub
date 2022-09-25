@@ -439,7 +439,6 @@ func (seg *AudioSegment) RMS() float64 {
 		seg.rms = &rms
 		return rms
 	}
-	return 0
 }
 
 // DBFS returns the value of dB Full Scale
