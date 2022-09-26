@@ -10,9 +10,9 @@ import (
 
 	"time"
 
-	"github.com/hopesea/godub/audioop"
-	"github.com/hopesea/godub/utils"
-	"github.com/hopesea/godub/wav"
+	"github.com/hopesea/godub/v2/audioop"
+	"github.com/hopesea/godub/v2/utils"
+	"github.com/hopesea/godub/v2/wav"
 )
 
 var (

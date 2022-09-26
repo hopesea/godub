@@ -11,7 +11,7 @@ import (
 
 	"path"
 
-	"github.com/hopesea/godub/utils"
+	"github.com/hopesea/godub/v2/utils"
 	"github.com/tink-ab/tempfile"
 )
 

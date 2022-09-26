@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/caicloud/nirvana/log"
-	"github.com/hopesea/godub"
-	"github.com/hopesea/godub/converter"
+	"github.com/hopesea/godub/v2"
+	"github.com/hopesea/godub/v2/converter"
 )
 
 func main() {
