@@ -139,8 +139,8 @@ func (seg *AudioSegment) Slice(start, end time.Duration) (*AudioSegment, error) 
 		end = audioLength
 	}
 
-	startIndex := seg.parsePosition(start) * int(seg.frameWidth)
-	endIndex := seg.parsePosition(end) * int(seg.frameWidth)
+	startIndex := seg.parsePosition(start)
+	endIndex := seg.parsePosition(end)
 	expectedLength := endIndex - startIndex
 
 	if endIndex > len(seg.data) {
@@ -152,7 +152,7 @@ func (seg *AudioSegment) Slice(start, end time.Duration) (*AudioSegment, error) 
 	// Ensure the output is as long as the user is expecting
 	missingFrames := (expectedLength - len(data)) / int(seg.frameWidth)
 	if missingFrames > 0 {
-		if float64(missingFrames) > seg.FrameCountIn(2*time.Millisecond) {
+		if missingFrames > seg.FrameCountIn(2*time.Millisecond) {
 			return nil, NewAudioSegmentError(
 				"you should never be filling in more than 2ms with silence here, missing %d frames",
 				missingFrames)
@@ -482,14 +482,14 @@ func (seg *AudioSegment) FrameCount() float64 {
 	}
 }
 
-func (seg *AudioSegment) FrameCountIn(d time.Duration) float64 {
+func (seg *AudioSegment) FrameCountIn(d time.Duration) int {
 	duration := seg.Duration()
 	if d > duration {
 		d = duration
 	}
-
-	ms := utils.Milliseconds(d)
-	return float64(ms) * (float64(seg.frameRate) / 1000.0)
+	framesPerSec := float64(d.Nanoseconds()) / 1e9
+	res := framesPerSec * float64(seg.frameRate)
+	return int(res)
 }
 
 func (seg *AudioSegment) SampleWidth() uint16 {
@@ -577,6 +577,6 @@ func (seg *AudioSegment) derive(data []byte, opts ...AudioSegmentOption) (*Audio
 }
 
 func (seg *AudioSegment) parsePosition(val time.Duration) int {
-	frames := seg.FrameCountIn(val)
+	frames := uint32(seg.FrameCountIn(val)) * seg.frameWidth
 	return int(frames)
 }
