@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/iFaceless/godub/audioop"
+	"github.com/hopesea/godub/audioop"
 )
 
 func main() {

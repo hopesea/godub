@@ -5,7 +5,7 @@ import (
 
 	"bytes"
 
-	"github.com/iFaceless/godub"
+	"github.com/hopesea/godub"
 )
 
 type SignalGenerator interface {
