@@ -513,22 +513,22 @@ func (seg *AudioSegment) RawData() []byte {
 }
 
 type TrimSilenceOpts struct {
-	leadSilence bool
-	tailSilence bool
+	LeadSilence bool
+	TailSilence bool
 }
 
 func (seg *AudioSegment) TrimSilence(threshold Volume, chunkLength time.Duration, opts TrimSilenceOpts) (*AudioSegment, error) {
 
 	var leadingSilenceDur time.Duration
 	var err error
-	if opts.leadSilence {
+	if opts.LeadSilence {
 		leadingSilenceDur, err = detectLeadingSilence(seg, threshold, chunkLength)
 		if err != nil {
 			return nil, err
 		}
 	}
 	var trailingSilenceDur time.Duration
-	if opts.tailSilence {
+	if opts.TailSilence {
 		revAudio, err := seg.Reverse()
 		if err != nil {
 			return nil, err
