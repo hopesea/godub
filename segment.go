@@ -512,6 +512,67 @@ func (seg *AudioSegment) RawData() []byte {
 	return seg.data
 }
 
+func (seg *AudioSegment) TrimSilence(threshold Volume, chunkLength time.Duration) (*AudioSegment, error) {
+
+	leadingSilenceDur, err := detectLeadingSilence(seg, threshold, chunkLength)
+	if err != nil {
+		return nil, err
+	}
+	revAudio, err := seg.Reverse()
+	if err != nil {
+		return nil, err
+	}
+	trailingSilenceDur, err := detectLeadingSilence(revAudio, threshold, chunkLength)
+	if err != nil {
+		return nil, err
+	}
+	res, err := seg.Slice(leadingSilenceDur, seg.Duration()-trailingSilenceDur)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func detectLeadingSilence(audio *AudioSegment, threshold Volume, chunkLength time.Duration) (time.Duration, error) {
+	d1 := audio.Duration()
+	d2 := chunkLength
+	chunks := int(d1 / d2)
+
+	trackThreshold := threshold.ToRatio(true) * audio.MaxPossibleAmplitude()
+	silence, err := initAudioSegmentFrom(audio)
+	if err != nil {
+		return 0, err
+	}
+	for chunkIdx, soundOverThreshold := 0, false; !soundOverThreshold && chunkIdx <= chunks; chunkIdx += 1 {
+		chunkStart := time.Duration(chunkIdx * int(chunkLength.Nanoseconds()))
+		chunkEnd := chunkStart + chunkLength
+		chunk, err := audio.Slice(chunkStart, chunkEnd)
+		if err != nil {
+			return 0, err
+		}
+		if chunk.RMS() > trackThreshold {
+			break
+		}
+		silence, err = silence.Append(chunk)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return silence.Duration(), nil
+}
+
+func initAudioSegmentFrom(audio *AudioSegment) (*AudioSegment, error) {
+	sampleWidth := SampleWidth(audio.SampleWidth())
+	frameRate := FrameRate(audio.FrameRate())
+	frameWidth := FrameWidth(audio.FrameWidth())
+	channels := Channels(audio.Channels())
+	res, err := NewAudioSegment([]byte{}, sampleWidth, frameRate, frameWidth, channels)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // Private functions & methods
 // sync will make sure every input segments have identical channels, frame rate and sample width.
 func sync(segments ...*AudioSegment) ([]*AudioSegment, error) {
