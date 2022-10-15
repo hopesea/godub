@@ -3,6 +3,7 @@ package audioop
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"math"
 )
 
@@ -65,21 +66,35 @@ func sampleCount(cp []byte, size int) int {
 
 func putSample(cp []byte, size int, offset int, value int32) error {
 	start := offset * size
-	end := start + size
-
-	write := func(v interface{}) error {
-		return binary.Write(bytes.NewBuffer(cp[start:end]), binary.LittleEndian, v)
-	}
-
+	vbuff := bytes.NewBuffer(nil)
 	switch size {
 	case 1:
-		return write(int8(value))
+		if err := binary.Write(vbuff, binary.LittleEndian, int8(value)); err != nil {
+			return err
+		}
+		data := vbuff.Bytes()
+		cp[start] = data[0]
+		return nil
 	case 2:
-		return write(int16(value))
+		if err := binary.Write(vbuff, binary.LittleEndian, int16(value)); err != nil {
+			return err
+		}
+		data := vbuff.Bytes()
+		cp[start] = data[0]
+		cp[start+1] = data[1]
+		return nil
 	case 4:
-		return write(int32(value))
+		if err := binary.Write(vbuff, binary.LittleEndian, int32(value)); err != nil {
+			return err
+		}
+		data := vbuff.Bytes()
+		cp[start] = data[0]
+		cp[start+1] = data[1]
+		cp[start+2] = data[2]
+		cp[start+3] = data[3]
+		return nil
 	default:
-		return NewError("size should be 1, 2, or 4")
+		return errors.New("size should be 1, 2, or 4")
 	}
 }
 

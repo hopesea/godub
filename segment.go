@@ -2,6 +2,7 @@ package godub
 
 import (
 	"bytes"
+	"errors"
 	"math"
 
 	"fmt"
@@ -652,4 +653,92 @@ func (seg *AudioSegment) derive(data []byte, opts ...AudioSegmentOption) (*Audio
 func (seg *AudioSegment) parsePosition(val time.Duration) int {
 	frames := uint32(seg.FrameCountIn(val)) * seg.frameWidth
 	return int(frames)
+}
+
+func (seg *AudioSegment) Fade(toGain Volume, fromGain Volume, startOffset time.Duration, duration time.Duration) (*AudioSegment, error) {
+	if toGain == 0 && fromGain == 0 {
+		return seg, nil
+	}
+	if duration < 0 {
+		return nil, errors.New("duration must be a positive integer")
+	}
+	start := utils.MinDuration(startOffset, seg.Duration())
+
+	if start < 0 {
+		start = seg.Duration() + startOffset
+	}
+
+	fromPower := fromGain.ToRatio(true)
+	beforeFade, err := seg.Slice(0, start)
+	if err != nil {
+		return nil, err
+	}
+
+	if fromGain != 0 {
+		beforeFadeData, err := audioop.Mul(beforeFade.RawData(), int(seg.SampleWidth()), fromPower)
+		if err != nil {
+			return nil, err
+		}
+		beforeFade, err = seg.derive(beforeFadeData)
+		if err != nil {
+			return nil, err
+		}
+	}
+	res := beforeFade
+	gainDelta := toGain.ToRatio(true) - fromPower
+
+	var timeUnit time.Duration
+	var steps int
+	if duration > 100 {
+		timeUnit = time.Millisecond
+		steps = int(duration.Milliseconds())
+	} else {
+		timeUnit = time.Microsecond
+		steps = int(duration.Microseconds())
+	}
+
+	timeUnitInt := int(timeUnit)
+	scaleStep := gainDelta / float64(duration) * float64(timeUnit)
+	for i := 0; i < steps; i++ {
+		volumeChange := fromPower + (scaleStep * float64(i))
+		fmt.Println(volumeChange)
+		chunkStart := start + time.Duration(i*timeUnitInt)
+		chunk, err := seg.Slice(chunkStart, chunkStart+timeUnit)
+		if err != nil {
+			return nil, err
+		}
+		adjustedChunkData, err := audioop.Mul(chunk.RawData(), int(seg.SampleWidth()), volumeChange)
+		if err != nil {
+			return nil, err
+		}
+		adjustedChunk, err := seg.derive(adjustedChunkData)
+		if err != nil {
+			return nil, err
+		}
+		res, err = res.Append(adjustedChunk)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if start+duration < seg.Duration() {
+		afterFade, err := seg.Slice(start+duration, seg.Duration())
+		if err != nil {
+			return nil, err
+		}
+		if toGain != 0 {
+			afterFadeData, err := audioop.Mul(afterFade.RawData(), int(seg.SampleWidth()), toGain.ToRatio(true))
+			if err != nil {
+				return nil, err
+			}
+			afterFade, err = seg.derive(afterFadeData)
+			if err != nil {
+				return nil, err
+			}
+		}
+		res, err = res.Append(afterFade)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
