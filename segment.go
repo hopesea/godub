@@ -701,7 +701,6 @@ func (seg *AudioSegment) Fade(toGain Volume, fromGain Volume, startOffset time.D
 	scaleStep := gainDelta / float64(duration) * float64(timeUnit)
 	for i := 0; i < steps; i++ {
 		volumeChange := fromPower + (scaleStep * float64(i))
-		fmt.Println(volumeChange)
 		chunkStart := start + time.Duration(i*timeUnitInt)
 		chunk, err := seg.Slice(chunkStart, chunkStart+timeUnit)
 		if err != nil {
