@@ -6,6 +6,9 @@ import (
 	"errors"
 	"math"
 )
+func GetSamples(cp []byte, size int) ([]int32, error) {
+	return getSamples(cp, size)
+}
 
 func getSamples(cp []byte, size int) ([]int32, error) {
 	read, err := getReadBinaryFunc(size)
